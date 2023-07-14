@@ -1,0 +1,51 @@
+version: '3'
+
+volumes:
+  teamcity: { }
+  traefik: { }
+
+networks:
+  is_network:
+    driver: bridge
+
+services:
+  teamcity:
+    image: jetbrains/teamcity-server
+    container_name: is_teamcity
+    volumes:
+      - teamcity:/data/teamcity_server/datadir:z
+      - teamcity:/opt/teamcity/logs:z
+    ports:
+      - "8111:8111"
+    networks:
+      - is_network
+
+#  agent:
+#    image: jetbrains/teamcity-minimal-agent
+#    container_name: is_agent
+#    depends_on:
+#      - teamcity
+#    volumes:
+#      - teamcity:/data/teamcity_agent/conf:z
+#      - teamcity:/opt/teamcity/logs:z
+#    environment:
+#      - SERVER_URL=http://teamcity:8111
+#      - AGENT_NAME=local-agent
+#    networks:
+#      - is_network
+
+  traefik:
+    build:
+      context: .
+      dockerfile: traefik/Dockerfile
+    image: traefik
+    container_name: is_traefik
+    depends_on:
+      - teamcity
+    volumes:
+      - traefik:/etc/traefik/acme:z
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    networks:
+      - is_network

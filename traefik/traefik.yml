@@ -1,0 +1,51 @@
+log:
+  level: INFO
+
+entryPoints:
+  web:
+    # http
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: web-secure
+
+  web-secure:
+    # https
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "email@example.com"
+      storage: /etc/traefik/acme/acme.json
+      httpChallenge:
+        entryPoint: web
+
+http:
+  routers:
+    web-secure-router:
+      rule: "Host(`domain.example.com`)"
+      entryPoints:
+        - web-secure
+      middlewares:
+        - csrf
+      service: teamcity
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    csrf:
+      headers:
+        hostsProxyHeaders: [ "X-CSRFToken" ]
+
+  services:
+    teamcity:
+      loadBalancer:
+        servers:
+          - url: http://teamcity:8111
+
+providers:
+  file:
+    filename: /etc/traefik/traefik.yml
+    watch: true
